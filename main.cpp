@@ -7,23 +7,21 @@
 int main()
 {
 	flatbuffers::FlatBufferBuilder builder;
-	// 직렬화
-	auto monster = CreateMonsterDirect(builder, "몬몬이", 100, 100, 50000, 77, 4, "knife");
+	auto weapon = CreateWeaponDirect(builder, "망치", 10, Grade_unique);
+	auto monster = CreateMonsterDirect(builder, "박기원", 100, 0, 0, weapon);
 	builder.Finish(monster);
 	const uint8_t* flatbuffer = builder.GetBufferPointer();
 	//send
 
 	//recv
-	// 역직렬화
-	const auto snowman = GetMonster(flatbuffer);
-	// 역직렬화한 것 출력
-	std::cout << snowman->name()->c_str() << std::endl;
-	std::cout << snowman->health() << std::endl;
-	std::cout << snowman->mp() << std::endl;
-	std::cout << snowman->exp() << std::endl;
-	std::cout << snowman->gold() << std::endl;
-	std::cout << snowman->level() << std::endl;
-	std::cout << snowman->weapon()->c_str() << std::endl;
+	const auto 기원맨 = GetMonster(flatbuffer);
+
+	std::cout << 기원맨->name()->c_str() << std::endl;
+	std::cout << 기원맨->health() << std::endl;
+	std::cout << 기원맨->mp() << std::endl;
+	std::cout << 기원맨->gold() << std::endl;
+	std::cout << 기원맨->weapons()->name()->c_str() << std::endl;
+	std::cout << EnumNameGrade(기원맨->weapons()->grade()) << std::endl;
 
 	return 0;
 }

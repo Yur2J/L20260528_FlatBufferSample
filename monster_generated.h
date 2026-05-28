@@ -13,8 +13,123 @@ static_assert(FLATBUFFERS_VERSION_MAJOR == 25 &&
               FLATBUFFERS_VERSION_REVISION == 19,
              "Non-compatible flatbuffers version included");
 
+struct Weapon;
+struct WeaponBuilder;
+
 struct Monster;
 struct MonsterBuilder;
+
+enum Grade : int8_t {
+  Grade_normal = 0,
+  Grade_magic = 1,
+  Grade_rare = 2,
+  Grade_unique = 3,
+  Grade_MIN = Grade_normal,
+  Grade_MAX = Grade_unique
+};
+
+inline const Grade (&EnumValuesGrade())[4] {
+  static const Grade values[] = {
+    Grade_normal,
+    Grade_magic,
+    Grade_rare,
+    Grade_unique
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesGrade() {
+  static const char * const names[5] = {
+    "normal",
+    "magic",
+    "rare",
+    "unique",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameGrade(Grade e) {
+  if (::flatbuffers::IsOutRange(e, Grade_normal, Grade_unique)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesGrade()[index];
+}
+
+struct Weapon FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef WeaponBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_ATTACK = 6,
+    VT_GRADE = 8
+  };
+  const ::flatbuffers::String *name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_NAME);
+  }
+  float attack() const {
+    return GetField<float>(VT_ATTACK, 0.0f);
+  }
+  Grade grade() const {
+    return static_cast<Grade>(GetField<int8_t>(VT_GRADE, 0));
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyField<float>(verifier, VT_ATTACK, 4) &&
+           VerifyField<int8_t>(verifier, VT_GRADE, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct WeaponBuilder {
+  typedef Weapon Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_name(::flatbuffers::Offset<::flatbuffers::String> name) {
+    fbb_.AddOffset(Weapon::VT_NAME, name);
+  }
+  void add_attack(float attack) {
+    fbb_.AddElement<float>(Weapon::VT_ATTACK, attack, 0.0f);
+  }
+  void add_grade(Grade grade) {
+    fbb_.AddElement<int8_t>(Weapon::VT_GRADE, static_cast<int8_t>(grade), 0);
+  }
+  explicit WeaponBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<Weapon> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<Weapon>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<Weapon> CreateWeapon(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> name = 0,
+    float attack = 0.0f,
+    Grade grade = Grade_normal) {
+  WeaponBuilder builder_(_fbb);
+  builder_.add_attack(attack);
+  builder_.add_name(name);
+  builder_.add_grade(grade);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<Weapon> CreateWeaponDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    float attack = 0.0f,
+    Grade grade = Grade_normal) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  return CreateWeapon(
+      _fbb,
+      name__,
+      attack,
+      grade);
+}
 
 struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef MonsterBuilder Builder;
@@ -22,10 +137,8 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_NAME = 4,
     VT_HEALTH = 6,
     VT_MP = 8,
-    VT_EXP = 10,
-    VT_GOLD = 12,
-    VT_LEVEL = 14,
-    VT_WEAPON = 16
+    VT_GOLD = 10,
+    VT_WEAPONS = 12
   };
   const ::flatbuffers::String *name() const {
     return GetPointer<const ::flatbuffers::String *>(VT_NAME);
@@ -36,17 +149,11 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   int32_t mp() const {
     return GetField<int32_t>(VT_MP, 0);
   }
-  int32_t exp() const {
-    return GetField<int32_t>(VT_EXP, 0);
-  }
   int32_t gold() const {
     return GetField<int32_t>(VT_GOLD, 0);
   }
-  int32_t level() const {
-    return GetField<int32_t>(VT_LEVEL, 0);
-  }
-  const ::flatbuffers::String *weapon() const {
-    return GetPointer<const ::flatbuffers::String *>(VT_WEAPON);
+  const Weapon *weapons() const {
+    return GetPointer<const Weapon *>(VT_WEAPONS);
   }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
@@ -55,11 +162,9 @@ struct Monster FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            verifier.VerifyString(name()) &&
            VerifyField<int32_t>(verifier, VT_HEALTH, 4) &&
            VerifyField<int32_t>(verifier, VT_MP, 4) &&
-           VerifyField<int32_t>(verifier, VT_EXP, 4) &&
            VerifyField<int32_t>(verifier, VT_GOLD, 4) &&
-           VerifyField<int32_t>(verifier, VT_LEVEL, 4) &&
-           VerifyOffset(verifier, VT_WEAPON) &&
-           verifier.VerifyString(weapon()) &&
+           VerifyOffset(verifier, VT_WEAPONS) &&
+           verifier.VerifyTable(weapons()) &&
            verifier.EndTable();
   }
 };
@@ -77,17 +182,11 @@ struct MonsterBuilder {
   void add_mp(int32_t mp) {
     fbb_.AddElement<int32_t>(Monster::VT_MP, mp, 0);
   }
-  void add_exp(int32_t exp) {
-    fbb_.AddElement<int32_t>(Monster::VT_EXP, exp, 0);
-  }
   void add_gold(int32_t gold) {
     fbb_.AddElement<int32_t>(Monster::VT_GOLD, gold, 0);
   }
-  void add_level(int32_t level) {
-    fbb_.AddElement<int32_t>(Monster::VT_LEVEL, level, 0);
-  }
-  void add_weapon(::flatbuffers::Offset<::flatbuffers::String> weapon) {
-    fbb_.AddOffset(Monster::VT_WEAPON, weapon);
+  void add_weapons(::flatbuffers::Offset<Weapon> weapons) {
+    fbb_.AddOffset(Monster::VT_WEAPONS, weapons);
   }
   explicit MonsterBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -105,15 +204,11 @@ inline ::flatbuffers::Offset<Monster> CreateMonster(
     ::flatbuffers::Offset<::flatbuffers::String> name = 0,
     int32_t health = 0,
     int32_t mp = 0,
-    int32_t exp = 0,
     int32_t gold = 0,
-    int32_t level = 0,
-    ::flatbuffers::Offset<::flatbuffers::String> weapon = 0) {
+    ::flatbuffers::Offset<Weapon> weapons = 0) {
   MonsterBuilder builder_(_fbb);
-  builder_.add_weapon(weapon);
-  builder_.add_level(level);
+  builder_.add_weapons(weapons);
   builder_.add_gold(gold);
-  builder_.add_exp(exp);
   builder_.add_mp(mp);
   builder_.add_health(health);
   builder_.add_name(name);
@@ -125,21 +220,16 @@ inline ::flatbuffers::Offset<Monster> CreateMonsterDirect(
     const char *name = nullptr,
     int32_t health = 0,
     int32_t mp = 0,
-    int32_t exp = 0,
     int32_t gold = 0,
-    int32_t level = 0,
-    const char *weapon = nullptr) {
+    ::flatbuffers::Offset<Weapon> weapons = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
-  auto weapon__ = weapon ? _fbb.CreateString(weapon) : 0;
   return CreateMonster(
       _fbb,
       name__,
       health,
       mp,
-      exp,
       gold,
-      level,
-      weapon__);
+      weapons);
 }
 
 inline const Monster *GetMonster(const void *buf) {
