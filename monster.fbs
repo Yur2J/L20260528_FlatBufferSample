@@ -1,0 +1,11 @@
+table Monster {
+  name:string;
+  health:int;
+  mp:int;
+  exp:int;
+  gold:int;
+  level:int;
+  weapon:string;
+}
+
+root_type Monster;
